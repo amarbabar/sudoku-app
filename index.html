@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>4x4 Sudoku</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f9f9f9;
+      text-align: center;
+      padding: 20px;
+    }
+    h2 {
+      color: #0078D7;
+    }
+    #scoreboard {
+      font-size: 1.2rem;
+      margin: 10px 0;
+    }
+    #emojiFeedback {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+    #sudoku-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      max-width: 320px;
+      margin: 20px auto;
+      background: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      font-size: 24px;
+      text-align: center;
+      border: 2px solid #ccc;
+      border-radius: 4px;
+    }
+    input:disabled {
+      background: #e0e0e0;
+      font-weight: bold;
+    }
+    button {
+      margin: 10px 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #0078D7;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #005fa3;
+    }
+  </style>
+</head>
+<body>
+
+<h2>🧠 4x4 Sudoku</h2>
+<div id="scoreboard">
+  ✅ Correct: <span id="correctCount">0</span> |
+  ❌ Incorrect: <span id="incorrectCount">0</span>
+</div>
+<div id="emojiFeedback"></div>
+
+<div id="sudoku-grid"></div>
+<button onclick="checkUserInput()">Check</button>
+<button onclick="showSolution()">Solution</button>
+<button onclick="generatePuzzle()">New Puzzle</button>
+
+<script>
+  let puzzle = [];
+  let solution = [];
+  let correctCount = 0;
+  let incorrectCount = 0;
+
+  function generatePuzzle() {
+    const base = ['1','2','3','4'];
+    let grid = [];
+
+    for (let i = 0; i < 4; i++) {
+      const row = base.slice();
+      for (let j = 0; j < i; j++) row.push(row.shift());
+      grid.push(...row);
+    }
+
+    // Shuffle rows and columns
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+    }
+
+    const rows = [0,1,2,3];
+    const cols = [0,1,2,3];
+    shuffle(rows);
+    shuffle(cols);
+
+    let shuffled = [];
+    for (let r of rows) {
+      for (let c of cols) {
+        shuffled.push(grid[r * 4 + c]);
+      }
+    }
+
+    solution = shuffled.slice();
+    puzzle = Array(16).fill('');
+    for (let row = 0; row < 4; row++) {
+      const index = row * 4 + Math.floor(Math.random() * 4);
+      puzzle[index] = solution[index];
+    }
+
+    renderGrid();
+    document.getElementById('emojiFeedback').textContent = '';
+  }
+
+  function renderGrid() {
+    const grid = document.getElementById('sudoku-grid');
+    grid.innerHTML = '';
+    puzzle.forEach((val, i) => {
+      const input = document.createElement('input');
+      input.maxLength = 1;
+      input.dataset.index = i;
+      input.value = val;
+      if (val !== '') input.disabled = true;
+      grid.appendChild(input);
+    });
+  }
+
+  function checkUserInput() {
+    const cells = document.querySelectorAll('#sudoku-grid input');
+    const userGrid = Array.from(cells).map(cell => cell.value);
+
+    for (let i = 0; i < 16; i++) {
+      if (puzzle[i] !== '' && userGrid[i] !== puzzle[i]) {
+        alert('❌ You changed a clue cell.');
+        return;
+      }
+    }
+
+    const isCorrect = isValidSudoku(userGrid);
+    updateScore(isCorrect);
+
+    cells.forEach((cell, i) => {
+      cell.style.borderColor = isCorrect ? '#5cb85c' : '#d9534f';
+    });
+  }
+
+  function updateScore(isCorrect) {
+    const emojiBox = document.getElementById('emojiFeedback');
+    if (isCorrect) {
+      correctCount++;
+      emojiBox.textContent = '🎉 Great job!';
+    } else {
+      incorrectCount++;
+      emojiBox.textContent = '😅 Try again!';
+    }
+    document.getElementById('correctCount').textContent = correctCount;
+    document.getElementById('incorrectCount').textContent = incorrectCount;
+  }
+
+  function showSolution() {
+    const cells = document.querySelectorAll('#sudoku-grid input');
+    cells.forEach((cell, i) => {
+      cell.value = solution[i];
+      cell.disabled = true;
+      cell.style.borderColor = '#5cb85c';
+      cell.style.backgroundColor = '#e6ffe6';
+    });
+  }
+
+  function isValidSudoku(grid) {
+    const nums = ['1','2','3','4'];
+
+    for (let r = 0; r < 4; r++) {
+      const row = grid.slice(r * 4, r * 4 + 4);
+      if (new Set(row).size !== 4 || !row.every(n => nums.includes(n))) return false;
+    }
+
+    for (let c = 0; c < 4; c++) {
+      const col = [grid[c], grid[c+4], grid[c+8], grid[c+12]];
+      if (new Set(col).size !== 4 || !col.every(n => nums.includes(n))) return false;
+    }
+
+    const boxes = [
+      [0,1,4,5], [2,3,6,7],
+      [8,9,12,13], [10,11,14,15]
+    ];
+    for (let box of boxes) {
+      const values = box.map(i => grid[i]);
+      if (new Set(values).size !== 4 || !values.every(n => nums.includes(n))) return false;
+    }
+
+    return true;
+  }
+
+  generatePuzzle();
+</script>
+
+</body>
+</html>
