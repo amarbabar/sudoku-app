@@ -89,7 +89,6 @@
       grid.push(...row);
     }
 
-    // Shuffle rows and columns
     function shuffle(arr) {
       for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -137,13 +136,21 @@
     const cells = document.querySelectorAll('#sudoku-grid input');
     const userGrid = Array.from(cells).map(cell => cell.value);
 
+    // Check for empty cells
+    if (userGrid.includes('')) {
+      alert('❌ Please fill all cells.');
+      return;
+    }
+
+    // Check if clue cells were changed
     for (let i = 0; i < 16; i++) {
       if (puzzle[i] !== '' && userGrid[i] !== puzzle[i]) {
-        alert('❌ You changed a clue cell.');
+        alert(`❌ You changed a clue cell at position ${i + 1}.`);
         return;
       }
     }
 
+    // Validate Sudoku logic
     const isCorrect = isValidSudoku(userGrid);
     updateScore(isCorrect);
 
@@ -173,6 +180,10 @@
       cell.style.borderColor = '#5cb85c';
       cell.style.backgroundColor = '#e6ffe6';
     });
+
+    setTimeout(() => {
+      generatePuzzle();
+    }, 5000);
   }
 
   function isValidSudoku(grid) {
@@ -199,6 +210,16 @@
 
     return true;
   }
+
+  // Restrict input to digits 1–4 only
+  document.addEventListener('input', function (e) {
+    if (e.target.tagName === 'INPUT' && !e.target.disabled) {
+      const val = e.target.value;
+      if (!['1', '2', '3', '4'].includes(val)) {
+        e.target.value = '';
+      }
+    }
+  });
 
   generatePuzzle();
 </script>
